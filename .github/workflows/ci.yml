@@ -132,7 +132,6 @@ jobs:
           RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
           RAILWAY_ENVIRONMENT: ${{ secrets.RAILWAY_ENVIRONMENT }}
           RAILWAY_BACKEND_SERVICE: ${{ secrets.RAILWAY_BACKEND_SERVICE }}
-        working-directory: backend
         shell: bash
         run: |
           if [ -z "$RAILWAY_TOKEN" ] || [ -z "$RAILWAY_PROJECT_ID" ] || [ -z "$RAILWAY_ENVIRONMENT" ] || [ -z "$RAILWAY_BACKEND_SERVICE" ]; then
@@ -143,7 +142,8 @@ jobs:
           railway up --ci \
             --project "$RAILWAY_PROJECT_ID" \
             --environment "$RAILWAY_ENVIRONMENT" \
-            --service "$RAILWAY_BACKEND_SERVICE"
+            --service "$RAILWAY_BACKEND_SERVICE" \
+            ./backend
 
   deploy_frontend_vercel:
     name: deploy-frontend-vercel
