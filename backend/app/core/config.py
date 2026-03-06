@@ -11,7 +11,12 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 60 * 24
     refresh_token_expire_minutes: int = 60 * 24 * 30
     algorithm: str = "HS256"
-    cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+    cors_origins: str = (
+        "http://localhost:5173,"
+        "http://127.0.0.1:5173,"
+        "https://study-os-xi.vercel.app,"
+        "https://studyos-staging.vercel.app"
+    )
     login_rate_limit: int = 10
     login_rate_window_seconds: int = 300
     email_verification_token_expire_minutes: int = 60
