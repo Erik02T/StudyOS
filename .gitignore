@@ -6,6 +6,9 @@ __pycache__/
 .mypy_cache/
 frontend/node_modules/
 frontend/dist/
+frontend/.next/
+frontend/test-results/
+frontend/playwright-report/
 backend/.venv/
 backend/.env
 *.log
