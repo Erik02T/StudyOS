@@ -74,8 +74,37 @@ function Heatmap({ items }) {
 const MEMBER_ROLES = ["member", "admin", "owner"];
 const PAGE_SIZE_OPTIONS = [5, 10, 20];
 
+function resolveDefaultApiBase() {
+  const envApiBase = import.meta.env.VITE_API_BASE_URL;
+  if (envApiBase) return envApiBase;
+
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    if (host === "localhost" || host === "127.0.0.1") {
+      return "http://127.0.0.1:8010";
+    }
+  }
+
+  return "https://studyos-api-staging.up.railway.app";
+}
+
+function resolveInitialApiBase() {
+  const fromStorage = localStorage.getItem("studyos_api_base");
+  const fallback = resolveDefaultApiBase();
+  if (!fromStorage) return fallback;
+
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    const runningLocal = host === "localhost" || host === "127.0.0.1";
+    const storageIsLocal = fromStorage.includes("127.0.0.1") || fromStorage.includes("localhost");
+    if (!runningLocal && storageIsLocal) return fallback;
+  }
+
+  return fromStorage;
+}
+
 export default function App() {
-  const [apiBase, setApiBase] = useState(localStorage.getItem("studyos_api_base") || "http://127.0.0.1:8010");
+  const [apiBase, setApiBase] = useState(resolveInitialApiBase());
   const [token, setToken] = useState(localStorage.getItem("studyos_token") || "");
   const [email, setEmail] = useState(localStorage.getItem("studyos_email") || "");
   const [password, setPassword] = useState("");
