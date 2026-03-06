@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class SubjectBase(BaseModel):
@@ -22,6 +22,4 @@ class SubjectUpdate(BaseModel):
 class SubjectOut(SubjectBase):
     id: int
 
-    class Config:
-        from_attributes = True
-
+    model_config = ConfigDict(from_attributes=True)

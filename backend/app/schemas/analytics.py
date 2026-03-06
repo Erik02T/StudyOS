@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime as dt
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class PerformanceLogRequest(BaseModel):
@@ -24,5 +24,4 @@ class PerformanceLogResponse(BaseModel):
     productivity_index: float
     time_block: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

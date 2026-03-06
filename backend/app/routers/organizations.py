@@ -105,6 +105,7 @@ def list_members(
     sort_dir: Literal["asc", "desc"] = Query(default="desc"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    _: Membership = Depends(require_permission("organizations:members:list")),
 ) -> dict:
     _assert_org_exists(db, organization_id)
     _get_org_membership(db, organization_id, current_user.id)
@@ -156,6 +157,7 @@ def invite_member(
     payload: OrganizationMemberInvite,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    _: Membership = Depends(require_permission("organizations:members:invite")),
 ) -> dict:
     _assert_org_exists(db, organization_id)
     actor = _get_org_membership(db, organization_id, current_user.id)
@@ -190,6 +192,7 @@ def update_member_role(
     payload: OrganizationMemberRoleUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    _: Membership = Depends(require_permission("organizations:members:update_role")),
 ) -> dict:
     _assert_org_exists(db, organization_id)
     actor = _get_org_membership(db, organization_id, current_user.id)
@@ -238,6 +241,7 @@ def remove_member(
     member_user_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    _: Membership = Depends(require_permission("organizations:members:remove")),
 ) -> Response:
     _assert_org_exists(db, organization_id)
     actor = _get_org_membership(db, organization_id, current_user.id)

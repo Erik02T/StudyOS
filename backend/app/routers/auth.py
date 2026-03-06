@@ -100,7 +100,15 @@ def _consume_action_token(db: Session, raw_token: str, purpose: str) -> ActionTo
 
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
-def register(payload: UserRegister, db: Session = Depends(get_db)) -> TokenResponse:
+def register(payload: UserRegister, request: Request, db: Session = Depends(get_db)) -> TokenResponse:
+    settings = get_settings()
+    RateLimitService.hit(
+        db=db,
+        identifier=_client_identifier(request, payload.email),
+        endpoint="auth:register",
+        limit=settings.login_rate_limit,
+        window_seconds=settings.login_rate_window_seconds,
+    )
     existing = db.query(User).filter(User.email == payload.email).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")

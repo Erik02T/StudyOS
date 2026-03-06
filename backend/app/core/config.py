@@ -17,6 +17,8 @@ class Settings(BaseSettings):
         "https://study-os-xi.vercel.app,"
         "https://studyos-staging.vercel.app"
     )
+    cors_allow_origin_regex: str = r"^https:\/\/.*\.vercel\.app$"
+    security_headers_enabled: bool = True
     login_rate_limit: int = 10
     login_rate_window_seconds: int = 300
     email_verification_token_expire_minutes: int = 60

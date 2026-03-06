@@ -17,14 +17,34 @@ settings = get_settings()
 app = FastAPI(title=settings.app_name, version=settings.app_version)
 setup_observability(app)
 
-allowed_origins = [origin.strip() for origin in settings.cors_origins.split(",") if origin.strip()]
+default_origins = {
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://study-os-xi.vercel.app",
+    "https://studyos-staging.vercel.app",
+}
+configured_origins = {origin.strip() for origin in settings.cors_origins.split(",") if origin.strip()}
+allowed_origins = sorted(default_origins | configured_origins)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins or ["*"],
+    allow_origins=allowed_origins,
+    allow_origin_regex=settings.cors_allow_origin_regex or None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+if settings.security_headers_enabled:
+
+    @app.middleware("http")
+    async def security_headers_middleware(request, call_next):
+        response = await call_next(request)
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+        return response
 
 
 @app.get("/health")

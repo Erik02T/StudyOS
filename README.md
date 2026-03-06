@@ -7,6 +7,7 @@ Projeto separado em duas pastas:
 - `backend/`: API FastAPI + PostgreSQL + motores adaptativos.
 - `frontend/`: painel React para dashboard e operacao diaria.
 - `PRODUCTION_READINESS_CHECKLIST.md`: plano executavel para maturidade SaaS.
+- `RUNBOOK_STAGING.md`: procedimentos operacionais para incidentes em staging.
 
 ## Backend
 

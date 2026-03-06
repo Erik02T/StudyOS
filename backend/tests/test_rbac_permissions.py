@@ -83,3 +83,55 @@ def test_member_can_update_task_but_cannot_delete(client, db_session):
     denied_delete = client.delete(f"/tasks/{task['id']}", headers=headers)
     assert denied_delete.status_code == 403
 
+
+def test_member_cannot_invite_members(client, db_session):
+    owner_register = client.post(
+        "/auth/register",
+        json={
+            "email": "owner-rbac-org@example.com",
+            "password": "Password123!",
+            "available_hours_per_day": 2,
+            "preferred_time_block": "19:00-21:00",
+        },
+    )
+    target_register = client.post(
+        "/auth/register",
+        json={
+            "email": "target-rbac-org@example.com",
+            "password": "Password123!",
+            "available_hours_per_day": 2,
+            "preferred_time_block": "19:00-21:00",
+        },
+    )
+    actor_register = client.post(
+        "/auth/register",
+        json={
+            "email": "actor-rbac-org@example.com",
+            "password": "Password123!",
+            "available_hours_per_day": 2,
+            "preferred_time_block": "19:00-21:00",
+        },
+    )
+    assert target_register.status_code == 201
+    assert actor_register.status_code == 201
+
+    owner_access = owner_register.json()["access_token"]
+    owner_headers = {"Authorization": f"Bearer {owner_access}"}
+    orgs = client.get("/organizations/", headers=owner_headers).json()
+    org_id = orgs[0]["id"]
+
+    invite_actor = client.post(
+        f"/organizations/{org_id}/members/invite",
+        headers=owner_headers,
+        json={"email": "actor-rbac-org@example.com", "role": "member"},
+    )
+    assert invite_actor.status_code == 200
+
+    actor_access = actor_register.json()["access_token"]
+    actor_headers = {"Authorization": f"Bearer {actor_access}", "X-Organization-Id": str(org_id)}
+    denied = client.post(
+        f"/organizations/{org_id}/members/invite",
+        headers=actor_headers,
+        json={"email": "target-rbac-org@example.com", "role": "member"},
+    )
+    assert denied.status_code == 403
