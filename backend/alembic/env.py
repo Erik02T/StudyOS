@@ -5,7 +5,22 @@ from sqlalchemy import engine_from_config, pool
 
 from app.core.config import get_settings
 from app.db.base import Base
-from app.models import performance, review, subject, task, user  # noqa: F401
+from app.models import (  # noqa: F401
+    action_token,
+    auth_session,
+    email_job,
+    idempotency_key,
+    membership,
+    organization,
+    performance,
+    rate_limit_event,
+    review,
+    revoked_token,
+    study_event,
+    subject,
+    task,
+    user,
+)
 
 config = context.config
 settings = get_settings()
@@ -41,4 +56,3 @@ if context.is_offline_mode():
     run_migrations_offline()
 else:
     run_migrations_online()
-

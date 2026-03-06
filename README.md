@@ -9,6 +9,12 @@ Projeto separado em duas pastas:
 - `PRODUCTION_READINESS_CHECKLIST.md`: plano executavel para maturidade SaaS.
 - `RUNBOOK_STAGING.md`: procedimentos operacionais para incidentes em staging.
 
+## Melhorias SaaS recentes
+
+- Idempotencia em `POST /sessions/finalize` via header `Idempotency-Key`.
+- Trilha de auditoria com eventos em `GET /analytics/events`.
+- Hardening de seguranca (headers HTTP + CORS por ambiente).
+
 ## Backend
 
 ```bash

@@ -42,6 +42,7 @@ ROLE_PERMISSIONS = {
         "sessions:finalize",
         "analytics:view",
         "analytics:write",
+        "audit:events:view",
         "internal:email_queue:view",
         "internal:email_queue:process",
     },

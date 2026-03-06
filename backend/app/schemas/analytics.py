@@ -25,3 +25,22 @@ class PerformanceLogResponse(BaseModel):
     time_block: str
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class StudyEventOut(BaseModel):
+    id: int
+    organization_id: int
+    user_id: int | None
+    event_type: str
+    entity_type: str | None
+    entity_id: str | None
+    payload: dict | None
+    created_at: dt.datetime
+
+
+class StudyEventListResponse(BaseModel):
+    items: list[StudyEventOut]
+    total: int
+    page: int
+    page_size: int
+    pages: int

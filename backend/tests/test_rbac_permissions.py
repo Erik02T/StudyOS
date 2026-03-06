@@ -135,3 +135,6 @@ def test_member_cannot_invite_members(client, db_session):
         json={"email": "target-rbac-org@example.com", "role": "member"},
     )
     assert denied.status_code == 403
+
+    denied_events = client.get("/analytics/events", headers=actor_headers)
+    assert denied_events.status_code == 403

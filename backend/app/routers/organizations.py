@@ -18,6 +18,7 @@ from app.schemas.organization import (
     OrganizationMemberRoleUpdate,
     OrganizationOut,
 )
+from app.services.study_event_service import StudyEventService
 
 router = APIRouter(prefix="/organizations", tags=["organizations"])
 
@@ -70,6 +71,16 @@ def create_organization(
     member = Membership(user_id=current_user.id, organization_id=org.id, role="owner")
     db.add(member)
     db.commit()
+    StudyEventService.record(
+        db=db,
+        organization_id=org.id,
+        user_id=current_user.id,
+        event_type="organization.created",
+        entity_type="organization",
+        entity_id=str(org.id),
+        payload={"name": org.name, "slug": org.slug},
+        commit=True,
+    )
     return {"id": org.id, "name": org.name, "slug": org.slug, "role": member.role}
 
 
@@ -182,6 +193,16 @@ def invite_member(
     member = Membership(user_id=user.id, organization_id=organization_id, role=requested_role)
     db.add(member)
     db.commit()
+    StudyEventService.record(
+        db=db,
+        organization_id=organization_id,
+        user_id=current_user.id,
+        event_type="organization.member.invited",
+        entity_type="membership",
+        entity_id=str(member.id),
+        payload={"invited_user_id": user.id, "invited_email": user.email, "role": requested_role},
+        commit=True,
+    )
     return {"user_id": user.id, "email": user.email, "role": member.role}
 
 
@@ -230,6 +251,16 @@ def update_member_role(
 
     target.role = new_role
     db.commit()
+    StudyEventService.record(
+        db=db,
+        organization_id=organization_id,
+        user_id=current_user.id,
+        event_type="organization.member.role_updated",
+        entity_type="membership",
+        entity_id=str(target.id),
+        payload={"target_user_id": member_user_id, "new_role": new_role},
+        commit=True,
+    )
 
     user = db.get(User, member_user_id)
     return {"user_id": member_user_id, "email": user.email if user else "", "role": target.role}
@@ -272,6 +303,18 @@ def remove_member(
         if owner_count <= 1:
             raise HTTPException(status_code=400, detail="Organization must have at least one owner")
 
+    target_id = target.id
+    target_user_id = target.user_id
     db.delete(target)
     db.commit()
+    StudyEventService.record(
+        db=db,
+        organization_id=organization_id,
+        user_id=current_user.id,
+        event_type="organization.member.removed",
+        entity_type="membership",
+        entity_id=str(target_id),
+        payload={"target_user_id": target_user_id},
+        commit=True,
+    )
     return Response(status_code=204)

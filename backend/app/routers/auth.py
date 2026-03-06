@@ -33,6 +33,7 @@ from app.schemas.auth import (
 from app.services.email_queue_service import EmailQueueService
 from app.services.email_templates import EmailTemplates
 from app.services.rate_limit_service import RateLimitService
+from app.services.study_event_service import StudyEventService
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -139,6 +140,17 @@ def register(payload: UserRegister, request: Request, db: Session = Depends(get_
 
     db.commit()
     db.refresh(user)
+
+    StudyEventService.record(
+        db=db,
+        organization_id=organization.id,
+        user_id=user.id,
+        event_type="auth.registered",
+        entity_type="user",
+        entity_id=str(user.id),
+        payload={"email": user.email},
+        commit=True,
+    )
 
     return _issue_token_pair(db=db, user=user)
 
