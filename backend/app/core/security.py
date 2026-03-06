@@ -43,6 +43,8 @@ ROLE_PERMISSIONS = {
         "analytics:view",
         "analytics:write",
         "audit:events:view",
+        "billing:view",
+        "billing:manage",
         "internal:email_queue:view",
         "internal:email_queue:process",
     },

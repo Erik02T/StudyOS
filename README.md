@@ -14,6 +14,7 @@ Projeto separado em duas pastas:
 - Idempotencia em `POST /sessions/finalize` via header `Idempotency-Key`.
 - Trilha de auditoria com eventos em `GET /analytics/events`.
 - Hardening de seguranca (headers HTTP + CORS por ambiente).
+- Billing foundation: plano `free/pro`, limites tecnicos por plano e base pronta para Stripe.
 
 ## Backend
 

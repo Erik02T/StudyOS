@@ -11,6 +11,7 @@ from app.models.subject import Subject
 from app.models.task import Task
 from app.models.user import User
 from app.schemas.task import TaskCreate, TaskOut, TaskUpdate
+from app.services.billing_service import BillingService
 from app.services.review_service import ReviewService
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
@@ -24,6 +25,12 @@ def create_task(
     current_org: Organization = Depends(get_current_organization),
     _perm=Depends(require_permission("tasks:create")),
 ) -> Task:
+    BillingService.check_and_consume(
+        db=db,
+        organization_id=current_org.id,
+        metric=BillingService.METRIC_TASKS_CREATED,
+        amount=1,
+    )
     subject = (
         db.query(Subject)
         .filter(

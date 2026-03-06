@@ -14,6 +14,7 @@ from app.models.organization import Organization
 from app.models.user import User
 from app.schemas.session import SessionFinalizeRequest, SessionFinalizeResponse
 from app.services.analytics_engine import AnalyticsEngine
+from app.services.billing_service import BillingService
 from app.services.study_event_service import StudyEventService
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
@@ -77,6 +78,13 @@ def finalize_session(
             if duplicate and duplicate.request_hash == payload_hash and duplicate.response_body and duplicate.status_code == 200:
                 return json.loads(duplicate.response_body)
             raise HTTPException(status_code=409, detail="Idempotency key conflict")
+
+    BillingService.check_and_consume(
+        db=db,
+        organization_id=current_org.id,
+        metric=BillingService.METRIC_SESSIONS_FINALIZED,
+        amount=1,
+    )
 
     quality = payload.quality
     completed_tasks = (

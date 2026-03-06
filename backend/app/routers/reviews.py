@@ -8,6 +8,7 @@ from app.db.session import get_db
 from app.models.organization import Organization
 from app.models.user import User
 from app.schemas.review import ReviewAnswerRequest, ReviewAnswerResponse, ReviewDueItem
+from app.services.billing_service import BillingService
 from app.services.review_service import ReviewService
 from app.services.study_event_service import StudyEventService
 
@@ -35,6 +36,12 @@ def answer_review(
     current_org: Organization = Depends(get_current_organization),
     _perm=Depends(require_permission("reviews:answer")),
 ) -> dict:
+    BillingService.check_and_consume(
+        db=db,
+        organization_id=current_org.id,
+        metric=BillingService.METRIC_REVIEWS_ANSWERED,
+        amount=1,
+    )
     result = ReviewService.answer_review(
         db=db,
         user_id=current_user.id,

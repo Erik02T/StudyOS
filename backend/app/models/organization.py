@@ -14,4 +14,7 @@ class Organization(Base):
     memberships = relationship("Membership", back_populates="organization", cascade="all, delete-orphan")
     subjects = relationship("Subject", back_populates="organization", cascade="all, delete-orphan")
     performances = relationship("Performance", back_populates="organization", cascade="all, delete-orphan")
-
+    subscription = relationship(
+        "OrganizationSubscription", uselist=False, cascade="all, delete-orphan", passive_deletes=True
+    )
+    usage_rows = relationship("OrganizationUsage", cascade="all, delete-orphan", passive_deletes=True)

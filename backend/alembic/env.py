@@ -12,6 +12,8 @@ from app.models import (  # noqa: F401
     idempotency_key,
     membership,
     organization,
+    organization_subscription,
+    organization_usage,
     performance,
     rate_limit_event,
     review,

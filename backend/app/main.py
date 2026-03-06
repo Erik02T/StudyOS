@@ -5,6 +5,7 @@ from app.core.config import get_settings
 from app.core.observability import setup_observability
 from app.routers.analytics import router as analytics_router
 from app.routers.auth import router as auth_router
+from app.routers.billing import router as billing_router
 from app.routers.internal_email_queue import router as internal_email_queue_router
 from app.routers.organizations import router as organizations_router
 from app.routers.planner import router as planner_router
@@ -62,6 +63,7 @@ all_routers = [
     sessions_router,
     analytics_router,
     internal_email_queue_router,
+    billing_router,
 ]
 
 for router in all_routers:

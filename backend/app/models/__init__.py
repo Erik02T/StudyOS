@@ -4,6 +4,8 @@ from app.models.email_job import EmailJob
 from app.models.idempotency_key import IdempotencyKey
 from app.models.membership import Membership
 from app.models.organization import Organization
+from app.models.organization_subscription import OrganizationSubscription
+from app.models.organization_usage import OrganizationUsage
 from app.models.performance import Performance
 from app.models.rate_limit_event import RateLimitEvent
 from app.models.review import Review
@@ -21,6 +23,8 @@ __all__ = [
     "Task",
     "Review",
     "Performance",
+    "OrganizationSubscription",
+    "OrganizationUsage",
     "AuthSession",
     "EmailJob",
     "ActionToken",

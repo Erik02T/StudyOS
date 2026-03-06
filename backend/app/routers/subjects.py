@@ -7,6 +7,7 @@ from app.models.organization import Organization
 from app.models.subject import Subject
 from app.models.user import User
 from app.schemas.subject import SubjectCreate, SubjectOut, SubjectUpdate
+from app.services.billing_service import BillingService
 
 router = APIRouter(prefix="/subjects", tags=["subjects"])
 
@@ -19,6 +20,7 @@ def create_subject(
     current_org: Organization = Depends(get_current_organization),
     _perm=Depends(require_permission("subjects:create")),
 ) -> Subject:
+    BillingService.assert_subject_capacity(db=db, organization_id=current_org.id)
     subject = Subject(user_id=current_user.id, organization_id=current_org.id, **payload.model_dump())
     db.add(subject)
     db.commit()

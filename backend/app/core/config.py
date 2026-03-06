@@ -38,6 +38,18 @@ class Settings(BaseSettings):
     email_worker_poll_seconds: int = 5
     sentry_dsn: str = ""
     sentry_traces_sample_rate: float = 0.2
+    billing_allow_manual_plan_change: bool = True
+    billing_free_max_subjects: int = 10
+    billing_free_tasks_per_month: int = 150
+    billing_free_reviews_per_month: int = 600
+    billing_free_sessions_per_month: int = 200
+    billing_pro_max_subjects: int = 999999
+    billing_pro_tasks_per_month: int = 999999
+    billing_pro_reviews_per_month: int = 999999
+    billing_pro_sessions_per_month: int = 999999
+    stripe_secret_key: str = ""
+    stripe_webhook_secret: str = ""
+    stripe_price_pro_monthly: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
