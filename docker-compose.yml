@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: studyos_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: studyos
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - studyos_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d studyos"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  studyos_db_data:
