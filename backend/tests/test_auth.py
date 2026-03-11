@@ -1,3 +1,6 @@
+from app.core.config import get_settings
+
+
 def test_healthcheck(client):
     response = client.get("/health")
     assert response.status_code == 200
@@ -170,3 +173,33 @@ def test_auth_requests_enqueue_email_jobs(client, db_session):
 
     jobs = db_session.query(EmailJob).all()
     assert len(jobs) >= 2
+
+
+def test_action_tokens_are_not_exposed_outside_local(client, monkeypatch):
+    monkeypatch.setenv("APP_ENV", "staging")
+    monkeypatch.setenv("SECRET_KEY", "staging-secret-key")
+    monkeypatch.delenv("ACTION_TOKEN_EXPOSE_IN_RESPONSE", raising=False)
+    monkeypatch.delenv("BILLING_ALLOW_MANUAL_PLAN_CHANGE", raising=False)
+    get_settings.cache_clear()
+
+    register = client.post(
+        "/auth/register",
+        json={
+            "email": "masked@example.com",
+            "password": "Password123!",
+            "available_hours_per_day": 2,
+            "preferred_time_block": "19:00-21:00",
+        },
+    )
+    access = register.json()["access_token"]
+
+    request_verification = client.post(
+        "/auth/request-email-verification",
+        headers={"Authorization": f"Bearer {access}"},
+    )
+    assert request_verification.status_code == 200
+    assert request_verification.json()["action_token"] is None
+
+    request_reset = client.post("/auth/request-password-reset", json={"email": "masked@example.com"})
+    assert request_reset.status_code == 200
+    assert request_reset.json()["action_token"] is None

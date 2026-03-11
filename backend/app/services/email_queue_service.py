@@ -27,10 +27,10 @@ class EmailQueueService:
             subject=subject,
             text_body=text_body,
             html_body=html_body,
-            provider=settings.email_provider,
+            provider=settings.email.provider,
             status="pending",
             attempts=0,
-            max_attempts=settings.email_max_attempts,
+            max_attempts=settings.email.max_attempts,
             next_attempt_at=now,
             last_error=None,
             provider_message_id=None,
@@ -114,4 +114,3 @@ class EmailQueueService:
                 int((dt.datetime.utcnow() - pending_oldest.created_at).total_seconds()) if pending_oldest else None
             ),
         }
-

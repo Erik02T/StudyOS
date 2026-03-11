@@ -11,14 +11,18 @@ from app.core.config import get_settings
 
 def setup_observability(app: FastAPI) -> None:
     settings = get_settings()
-    logging.basicConfig(level=logging.INFO, format="%(message)s")
+    log_format = "%(message)s" if settings.observability.json_logs_enabled else "%(levelname)s %(message)s"
+    logging.basicConfig(level=settings.observability.log_level, format=log_format)
     logger = logging.getLogger("studyos")
 
     try:
         import sentry_sdk  # type: ignore
 
-        if getattr(settings, "sentry_dsn", ""):
-            sentry_sdk.init(dsn=settings.sentry_dsn, traces_sample_rate=settings.sentry_traces_sample_rate)
+        if settings.observability.sentry_enabled:
+            sentry_sdk.init(
+                dsn=settings.observability.sentry_dsn,
+                traces_sample_rate=settings.observability.sentry_traces_sample_rate,
+            )
     except Exception:
         pass
 
@@ -73,4 +77,3 @@ def setup_observability(app: FastAPI) -> None:
             )
         )
         return JSONResponse(status_code=500, content={"detail": "Internal server error", "request_id": request_id})
-

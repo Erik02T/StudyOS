@@ -17,9 +17,8 @@ def run_forever() -> None:
     settings = get_settings()
     while True:
         run_once()
-        time.sleep(max(1, settings.email_worker_poll_seconds))
+        time.sleep(max(1, settings.email.worker_poll_seconds))
 
 
 if __name__ == "__main__":
     run_forever()
-

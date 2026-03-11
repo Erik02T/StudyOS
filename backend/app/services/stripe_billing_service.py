@@ -25,11 +25,11 @@ class StripeBillingService:
         cancel_url: str,
     ) -> dict:
         settings = get_settings()
-        if not settings.stripe_secret_key or not settings.stripe_price_pro_monthly:
+        if not settings.billing.stripe_secret_key or not settings.billing.stripe_price_pro_monthly:
             raise HTTPException(status_code=503, detail="Stripe is not configured")
 
         stripe = StripeBillingService._get_stripe_module()
-        stripe.api_key = settings.stripe_secret_key
+        stripe.api_key = settings.billing.stripe_secret_key
 
         subscription = (
             db.query(OrganizationSubscription)
@@ -41,7 +41,7 @@ class StripeBillingService:
         session = stripe.checkout.Session.create(
             mode="subscription",
             customer=customer,
-            line_items=[{"price": settings.stripe_price_pro_monthly, "quantity": 1}],
+            line_items=[{"price": settings.billing.stripe_price_pro_monthly, "quantity": 1}],
             success_url=success_url,
             cancel_url=cancel_url,
             metadata={"organization_id": str(organization_id), "target_plan": "pro"},

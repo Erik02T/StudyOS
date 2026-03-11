@@ -107,8 +107,8 @@ def register(payload: UserRegister, request: Request, db: Session = Depends(get_
         db=db,
         identifier=_client_identifier(request, payload.email),
         endpoint="auth:register",
-        limit=settings.login_rate_limit,
-        window_seconds=settings.login_rate_window_seconds,
+        limit=settings.auth.login_rate_limit,
+        window_seconds=settings.auth.login_rate_window_seconds,
     )
     existing = db.query(User).filter(User.email == payload.email).first()
     if existing:
@@ -162,8 +162,8 @@ def login(payload: UserLogin, request: Request, db: Session = Depends(get_db)) -
         db=db,
         identifier=_client_identifier(request, payload.email),
         endpoint="auth:login",
-        limit=settings.login_rate_limit,
-        window_seconds=settings.login_rate_window_seconds,
+        limit=settings.auth.login_rate_limit,
+        window_seconds=settings.auth.login_rate_window_seconds,
     )
     user = db.query(User).filter(User.email == payload.email).first()
     if not user or not verify_password(payload.password, user.hashed_password):
@@ -178,8 +178,8 @@ def refresh_token(payload: RefreshTokenRequest, request: Request, db: Session = 
         db=db,
         identifier=_client_identifier(request),
         endpoint="auth:refresh",
-        limit=settings.login_rate_limit,
-        window_seconds=settings.login_rate_window_seconds,
+        limit=settings.auth.login_rate_limit,
+        window_seconds=settings.auth.login_rate_window_seconds,
     )
     try:
         token_payload = decode_token(payload.refresh_token)
@@ -224,8 +224,8 @@ def logout(
         db=db,
         identifier=_client_identifier(request, current_user.email),
         endpoint="auth:logout",
-        limit=settings.login_rate_limit,
-        window_seconds=settings.login_rate_window_seconds,
+        limit=settings.auth.login_rate_limit,
+        window_seconds=settings.auth.login_rate_window_seconds,
     )
 
     auth_header = request.headers.get("authorization", "")
@@ -289,14 +289,14 @@ def request_email_verification(
         db=db,
         identifier=_client_identifier(request, current_user.email),
         endpoint="auth:request-email-verification",
-        limit=settings.login_rate_limit,
-        window_seconds=settings.login_rate_window_seconds,
+        limit=settings.auth.login_rate_limit,
+        window_seconds=settings.auth.login_rate_window_seconds,
     )
     raw_token = _issue_action_token(
         db=db,
         user=current_user,
         purpose="verify_email",
-        expire_minutes=settings.email_verification_token_expire_minutes,
+        expire_minutes=settings.auth.email_verification_token_expire_minutes,
     )
     subject, text_body, html_body = EmailTemplates.verify_email(current_user.email, raw_token)
     EmailQueueService.enqueue(
@@ -308,7 +308,7 @@ def request_email_verification(
     )
     return ActionRequestResponse(
         message="If your account exists, a verification token has been issued.",
-        action_token=raw_token if settings.action_token_expose_in_response else None,
+        action_token=raw_token if settings.auth.action_token_expose_in_response else None,
     )
 
 
@@ -335,8 +335,8 @@ def request_password_reset(
         db=db,
         identifier=_client_identifier(request, payload.email),
         endpoint="auth:request-password-reset",
-        limit=settings.login_rate_limit,
-        window_seconds=settings.login_rate_window_seconds,
+        limit=settings.auth.login_rate_limit,
+        window_seconds=settings.auth.login_rate_window_seconds,
     )
     user = db.query(User).filter(User.email == payload.email).first()
     if not user:
@@ -345,7 +345,7 @@ def request_password_reset(
         db=db,
         user=user,
         purpose="reset_password",
-        expire_minutes=settings.password_reset_token_expire_minutes,
+        expire_minutes=settings.auth.password_reset_token_expire_minutes,
     )
     subject, text_body, html_body = EmailTemplates.password_reset(user.email, raw_token)
     EmailQueueService.enqueue(
@@ -357,7 +357,7 @@ def request_password_reset(
     )
     return ActionRequestResponse(
         message="If your account exists, a reset token has been issued.",
-        action_token=raw_token if settings.action_token_expose_in_response else None,
+        action_token=raw_token if settings.auth.action_token_expose_in_response else None,
     )
 
 

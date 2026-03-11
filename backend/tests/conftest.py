@@ -7,6 +7,13 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
+os.environ.setdefault("APP_ENV", "test")
+os.environ.setdefault("SECRET_KEY", "test-secret-key")
+os.environ.setdefault("ACTION_TOKEN_EXPOSE_IN_RESPONSE", "true")
+os.environ.setdefault("BILLING_ALLOW_MANUAL_PLAN_CHANGE", "true")
+os.environ.setdefault("EMAIL_PROVIDER", "console")
+os.environ.setdefault("SENTRY_DSN", "")
+
 from app.core import security
 from app.core.config import get_settings
 from app.db.base import Base
@@ -55,7 +62,10 @@ def client(db_session: Session) -> Generator[TestClient, None, None]:
 
 
 @pytest.fixture(autouse=True)
-def patch_password_hashing(monkeypatch):
+def patch_password_hashing(monkeypatch, request):
+    if request.node.get_closest_marker("real_password_hashing"):
+        return
+
     def _fake_hash(password: str) -> str:
         return f"hashed::{password}"
 
@@ -69,10 +79,15 @@ def patch_password_hashing(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
-def override_test_settings():
-    os.environ["ACTION_TOKEN_EXPOSE_IN_RESPONSE"] = "true"
-    os.environ["EMAIL_PROVIDER"] = "console"
-    os.environ["SENTRY_DSN"] = ""
+def override_test_settings(monkeypatch):
+    monkeypatch.setenv("APP_ENV", "test")
+    monkeypatch.setenv("SECRET_KEY", "test-secret-key")
+    monkeypatch.setenv("ACTION_TOKEN_EXPOSE_IN_RESPONSE", "true")
+    monkeypatch.setenv("BILLING_ALLOW_MANUAL_PLAN_CHANGE", "true")
+    monkeypatch.setenv("EMAIL_PROVIDER", "console")
+    monkeypatch.setenv("SENTRY_DSN", "")
+    monkeypatch.delenv("RAILWAY_ENVIRONMENT_NAME", raising=False)
+    monkeypatch.delenv("STRIPE_ALLOW_INSECURE_WEBHOOKS", raising=False)
     get_settings.cache_clear()
     try:
         yield

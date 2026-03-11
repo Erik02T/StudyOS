@@ -47,7 +47,7 @@ def update_subscription_plan(
     _perm=Depends(require_permission("billing:manage")),
 ) -> BillingSubscriptionResponse:
     settings = get_settings()
-    if not settings.billing_allow_manual_plan_change:
+    if not settings.billing.allow_manual_plan_change:
         raise HTTPException(status_code=403, detail="Manual plan change is disabled")
     if membership.role.lower() != "owner":
         raise HTTPException(status_code=403, detail="Only organization owner can change plan")
@@ -108,32 +108,43 @@ async def stripe_webhook(
     db: Session = Depends(get_db),
 ) -> dict:
     settings = get_settings()
-    if not settings.stripe_secret_key:
+    if not settings.billing.stripe_secret_key:
         raise HTTPException(status_code=503, detail="Stripe is not configured")
 
-    try:
-        import stripe  # type: ignore
-    except Exception as exc:  # pragma: no cover - optional dependency
-        raise HTTPException(status_code=503, detail="Stripe SDK is not installed") from exc
-
-    stripe.api_key = settings.stripe_secret_key
     payload = await request.body()
 
-    if settings.stripe_webhook_secret:
+    if settings.billing.stripe_webhook_secret:
+        try:
+            import stripe  # type: ignore
+        except Exception as exc:  # pragma: no cover - optional dependency
+            raise HTTPException(status_code=503, detail="Stripe SDK is not installed") from exc
+
+        stripe.api_key = settings.billing.stripe_secret_key
         if not stripe_signature:
             raise HTTPException(status_code=400, detail="Missing Stripe-Signature header")
         try:
-            event = stripe.Webhook.construct_event(payload, stripe_signature, settings.stripe_webhook_secret)
+            event = stripe.Webhook.construct_event(
+                payload,
+                stripe_signature,
+                settings.billing.stripe_webhook_secret,
+            )
         except Exception as exc:
             raise HTTPException(status_code=400, detail="Invalid Stripe webhook signature") from exc
-    else:
-        # Fallback for staging/dev when signature secret is not set.
+    elif settings.billing.allow_insecure_stripe_webhooks:
         import json
 
         try:
             event = json.loads(payload.decode("utf-8"))
         except Exception as exc:
             raise HTTPException(status_code=400, detail="Invalid webhook payload") from exc
+    else:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Stripe webhook signature verification is not configured. "
+                "Set STRIPE_WEBHOOK_SECRET or explicitly enable STRIPE_ALLOW_INSECURE_WEBHOOKS for local/test only."
+            ),
+        )
 
     event_type = event.get("type")
     data_object = (event.get("data") or {}).get("object") or {}

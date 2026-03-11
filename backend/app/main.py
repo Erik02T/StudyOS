@@ -15,7 +15,7 @@ from app.routers.subjects import router as subjects_router
 from app.routers.tasks import router as tasks_router
 
 settings = get_settings()
-app = FastAPI(title=settings.app_name, version=settings.app_version)
+app = FastAPI(title=settings.app.name, version=settings.app.version)
 setup_observability(app)
 
 default_origins = {
@@ -24,19 +24,19 @@ default_origins = {
     "https://study-os-xi.vercel.app",
     "https://studyos-staging.vercel.app",
 }
-configured_origins = {origin.strip() for origin in settings.cors_origins.split(",") if origin.strip()}
+configured_origins = set(settings.app.cors_origins)
 allowed_origins = sorted(default_origins | configured_origins)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
-    allow_origin_regex=settings.cors_allow_origin_regex or None,
+    allow_origin_regex=settings.app.cors_allow_origin_regex or None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
-if settings.security_headers_enabled:
+if settings.app.security_headers_enabled:
 
     @app.middleware("http")
     async def security_headers_middleware(request, call_next):

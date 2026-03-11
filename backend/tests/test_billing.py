@@ -1,3 +1,6 @@
+from app.core.config import get_settings
+
+
 def _register(client, email: str) -> dict:
     response = client.post(
         "/auth/register",
@@ -95,3 +98,19 @@ def test_checkout_session_requires_stripe_configuration(client):
         },
     )
     assert response.status_code == 503
+
+
+def test_stripe_webhook_requires_explicit_secure_configuration(client, monkeypatch):
+    monkeypatch.setenv("APP_ENV", "staging")
+    monkeypatch.setenv("SECRET_KEY", "staging-secret-key")
+    monkeypatch.setenv("STRIPE_SECRET_KEY", "sk_test_dummy")
+    monkeypatch.delenv("ACTION_TOKEN_EXPOSE_IN_RESPONSE", raising=False)
+    monkeypatch.delenv("BILLING_ALLOW_MANUAL_PLAN_CHANGE", raising=False)
+    monkeypatch.delenv("STRIPE_WEBHOOK_SECRET", raising=False)
+    monkeypatch.delenv("STRIPE_ALLOW_INSECURE_WEBHOOKS", raising=False)
+    get_settings.cache_clear()
+
+    response = client.post("/billing/webhook/stripe", json={"type": "ping"})
+
+    assert response.status_code == 503
+    assert "STRIPE_WEBHOOK_SECRET" in response.json()["detail"]

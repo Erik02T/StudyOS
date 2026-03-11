@@ -87,7 +87,7 @@ def _create_token(
     to_encode = {"sub": subject, "exp": expire, "jti": uuid.uuid4().hex, "type": token_type}
     if extra_claims:
         to_encode.update(extra_claims)
-    return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
+    return jwt.encode(to_encode, settings.auth.secret_key, algorithm=settings.auth.algorithm)
 
 
 def create_access_token(subject: str, expires_delta: Optional[timedelta] = None) -> str:
@@ -95,7 +95,7 @@ def create_access_token(subject: str, expires_delta: Optional[timedelta] = None)
     return _create_token(
         subject=subject,
         token_type="access",
-        expires_delta=expires_delta if expires_delta else timedelta(minutes=settings.access_token_expire_minutes),
+        expires_delta=expires_delta if expires_delta else timedelta(minutes=settings.auth.access_token_expire_minutes),
     )
 
 
@@ -108,14 +108,14 @@ def create_refresh_token(
     return _create_token(
         subject=subject,
         token_type="refresh",
-        expires_delta=expires_delta if expires_delta else timedelta(minutes=settings.refresh_token_expire_minutes),
+        expires_delta=expires_delta if expires_delta else timedelta(minutes=settings.auth.refresh_token_expire_minutes),
         extra_claims={"sid": session_id},
     )
 
 
 def decode_token(token: str) -> dict:
     settings = get_settings()
-    return jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+    return jwt.decode(token, settings.auth.secret_key, algorithms=[settings.auth.algorithm])
 
 
 def hash_token(token: str) -> str:

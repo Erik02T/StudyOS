@@ -5,12 +5,12 @@ class EmailTemplates:
     @staticmethod
     def verification_link(token: str) -> str:
         settings = get_settings()
-        return f"{settings.public_app_url.rstrip('/')}/verify-email?token={token}"
+        return f"{settings.app.public_app_url.rstrip('/')}/verify-email?token={token}"
 
     @staticmethod
     def password_reset_link(token: str) -> str:
         settings = get_settings()
-        return f"{settings.public_app_url.rstrip('/')}/reset-password?token={token}"
+        return f"{settings.app.public_app_url.rstrip('/')}/reset-password?token={token}"
 
     @staticmethod
     def verify_email(email: str, token: str) -> tuple[str, str, str]:
@@ -45,4 +45,3 @@ class EmailTemplates:
             "<p>If you did not request this, ignore this message.</p>"
         )
         return subject, text, html
-

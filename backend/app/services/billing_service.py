@@ -51,16 +51,16 @@ class BillingService:
         normalized = (plan or "free").lower()
         if normalized == "pro":
             return {
-                "max_subjects": settings.billing_pro_max_subjects,
-                BillingService.METRIC_TASKS_CREATED: settings.billing_pro_tasks_per_month,
-                BillingService.METRIC_REVIEWS_ANSWERED: settings.billing_pro_reviews_per_month,
-                BillingService.METRIC_SESSIONS_FINALIZED: settings.billing_pro_sessions_per_month,
+                "max_subjects": settings.billing.pro_limits.max_subjects,
+                BillingService.METRIC_TASKS_CREATED: settings.billing.pro_limits.tasks_per_month,
+                BillingService.METRIC_REVIEWS_ANSWERED: settings.billing.pro_limits.reviews_per_month,
+                BillingService.METRIC_SESSIONS_FINALIZED: settings.billing.pro_limits.sessions_per_month,
             }
         return {
-            "max_subjects": settings.billing_free_max_subjects,
-            BillingService.METRIC_TASKS_CREATED: settings.billing_free_tasks_per_month,
-            BillingService.METRIC_REVIEWS_ANSWERED: settings.billing_free_reviews_per_month,
-            BillingService.METRIC_SESSIONS_FINALIZED: settings.billing_free_sessions_per_month,
+            "max_subjects": settings.billing.free_limits.max_subjects,
+            BillingService.METRIC_TASKS_CREATED: settings.billing.free_limits.tasks_per_month,
+            BillingService.METRIC_REVIEWS_ANSWERED: settings.billing.free_limits.reviews_per_month,
+            BillingService.METRIC_SESSIONS_FINALIZED: settings.billing.free_limits.sessions_per_month,
         }
 
     @staticmethod
