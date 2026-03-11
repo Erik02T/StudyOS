@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from app.core.config import Settings
+from app.core.config import DEFAULT_SECRET_KEY, Settings, get_settings, _summarize_settings_validation_error
 
 
 MANAGED_ENV_KEYS = [
@@ -108,3 +108,38 @@ def test_railway_requires_explicit_non_local_environment(monkeypatch):
             SECRET_KEY="railway-secret",
             RAILWAY_ENVIRONMENT_NAME="production",
         )
+
+
+def test_settings_validation_summary_includes_fields_without_secret_values(monkeypatch):
+    with pytest.raises(ValidationError) as exc_info:
+        _build_settings(
+            monkeypatch,
+            APP_ENV="production",
+            SECRET_KEY=DEFAULT_SECRET_KEY,
+            LOGIN_RATE_LIMIT="not-an-int",
+        )
+
+    summary = _summarize_settings_validation_error(exc_info.value)
+
+    assert "Settings validation failed during startup." in summary
+    assert "login_rate_limit" in summary
+    assert "valid integer" in summary
+    assert DEFAULT_SECRET_KEY not in summary
+
+
+def test_get_settings_logs_clean_summary_before_reraising(monkeypatch, caplog):
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("SECRET_KEY", DEFAULT_SECRET_KEY)
+    get_settings.cache_clear()
+    caplog.clear()
+
+    with caplog.at_level("ERROR", logger="studyos.config"):
+        with pytest.raises(ValidationError):
+            get_settings()
+
+    log_output = "\n".join(record.getMessage() for record in caplog.records)
+    assert "Settings validation failed during startup." in log_output
+    assert "SECRET_KEY must be set explicitly for staging and production environments" in log_output
+    assert DEFAULT_SECRET_KEY not in log_output
+
+    get_settings.cache_clear()

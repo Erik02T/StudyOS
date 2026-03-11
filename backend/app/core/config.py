@@ -1,10 +1,13 @@
+import logging
 from enum import Enum
 from functools import cached_property, lru_cache
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, ValidationError, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEFAULT_SECRET_KEY = "d002c9b-8f1e-4c3a-9c3b-2f0e5d6a7b8c"
+logger = logging.getLogger("studyos.config")
+_last_logged_settings_validation_summary: str | None = None
 
 
 class RuntimeEnvironment(str, Enum):
@@ -356,4 +359,48 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
-    return Settings()
+    try:
+        return Settings()
+    except ValidationError as exc:
+        _log_settings_validation_error(exc)
+        raise
+
+
+def _log_settings_validation_error(exc: ValidationError) -> None:
+    global _last_logged_settings_validation_summary
+
+    summary = _summarize_settings_validation_error(exc)
+    if summary == _last_logged_settings_validation_summary:
+        return
+
+    _last_logged_settings_validation_summary = summary
+    if not logging.getLogger().handlers:
+        logging.basicConfig(level=logging.ERROR, format="%(message)s")
+    logger.error(summary)
+
+
+def _summarize_settings_validation_error(exc: ValidationError) -> str:
+    lines = ["Settings validation failed during startup. Fix the environment configuration and restart."]
+    for error in exc.errors(include_url=False):
+        location = _format_settings_error_location(error.get("loc", ()))
+        message = error.get("msg", "Invalid value")
+        lines.append(f"- {location}: {message}")
+    return "\n".join(lines)
+
+
+def _format_settings_error_location(loc: tuple[object, ...] | list[object]) -> str:
+    if not loc:
+        return "settings"
+
+    alias_to_field_name = {
+        str(field.validation_alias): field_name
+        for field_name, field in Settings.model_fields.items()
+        if field.validation_alias is not None
+    }
+    normalized_parts = []
+    for part in loc:
+        if isinstance(part, str):
+            normalized_parts.append(alias_to_field_name.get(part, part))
+        else:
+            normalized_parts.append(str(part))
+    return ".".join(normalized_parts)
