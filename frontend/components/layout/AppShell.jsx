@@ -6,7 +6,7 @@ import Sidebar from "./Sidebar";
 import { useStudyOS } from "../providers/StudyOSProvider";
 
 export default function AppShell({ title, subtitle, children }) {
-  const { apiBase, setApiBase, logout } = useStudyOS();
+  const { apiBase, canEditApiBase, setApiBase, logout } = useStudyOS();
 
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[18rem_1fr]">
@@ -31,14 +31,16 @@ export default function AppShell({ title, subtitle, children }) {
               </button>
             </div>
           </div>
-          <div className="mt-3 grid max-w-xl gap-2">
-            <label className="text-xs uppercase tracking-[0.2em] text-slate-400">API Base</label>
-            <input
-              value={apiBase}
-              onChange={(e) => setApiBase(e.target.value)}
-              className="rounded-xl border border-white/10 bg-card px-3 py-2 text-sm text-slate-100"
-            />
-          </div>
+          {canEditApiBase ? (
+            <div className="mt-3 grid max-w-xl gap-2">
+              <label className="text-xs uppercase tracking-[0.2em] text-slate-400">API Base</label>
+              <input
+                value={apiBase}
+                onChange={(e) => setApiBase(e.target.value)}
+                className="rounded-xl border border-white/10 bg-card px-3 py-2 text-sm text-slate-100"
+              />
+            </div>
+          ) : null}
         </header>
         <div className="flex-1 px-4 py-5 lg:px-8">{children}</div>
       </main>

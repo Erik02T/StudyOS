@@ -83,6 +83,16 @@ function emptyResponse(route, status = 204) {
   return route.fulfill({ status, headers: withCorsHeaders(), body: "" });
 }
 
+function bearerToken(headers) {
+  const authorization = headers.authorization || headers.Authorization || "";
+  return authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
+}
+
+function shouldRejectExpiredAccessToken(path, accessToken, expiredAccessToken) {
+  if (!expiredAccessToken || accessToken !== expiredAccessToken) return false;
+  return path !== "/auth/login" && path !== "/auth/register" && path !== "/auth/refresh";
+}
+
 function paginateMembers(rows, params) {
   const search = (params.get("search") || "").trim().toLowerCase();
   const role = (params.get("role") || "").trim().toLowerCase();
@@ -117,6 +127,15 @@ function paginateMembers(rows, params) {
 }
 
 async function setupApiMock(page, options = {}) {
+  const auth = {
+    expiredAccessToken: options.auth?.expiredAccessToken || "",
+    validRefreshToken: options.auth?.validRefreshToken || "seed-refresh-token",
+    refreshedAccessToken: options.auth?.refreshedAccessToken || "refreshed-token",
+    refreshedRefreshToken: options.auth?.refreshedRefreshToken || "refreshed-refresh-token",
+    failRefresh: options.auth?.failRefresh || false,
+  };
+  let currentValidRefreshToken = auth.validRefreshToken;
+
   const state = {
     organizations: options.organizations || [{ id: 1, name: "Acme Workspace", slug: "acme-workspace", role: "owner" }],
     dashboard: options.dashboard || defaultDashboard(),
@@ -133,6 +152,7 @@ async function setupApiMock(page, options = {}) {
       reviewsAnswer: [],
       authRegister: [],
       authLogin: [],
+      authRefresh: [],
       membersInvite: [],
       membersRole: [],
       membersRemove: [],
@@ -149,6 +169,11 @@ async function setupApiMock(page, options = {}) {
       return emptyResponse(route, 204);
     }
 
+    const accessToken = bearerToken(request.headers());
+    if (shouldRejectExpiredAccessToken(path, accessToken, auth.expiredAccessToken)) {
+      return jsonResponse(route, { detail: "Could not validate credentials" }, 401);
+    }
+
     if (method === "POST" && path === "/auth/register") {
       const payload = request.postDataJSON() || {};
       state.captured.authRegister.push(payload);
@@ -159,6 +184,20 @@ async function setupApiMock(page, options = {}) {
       const payload = request.postDataJSON() || {};
       state.captured.authLogin.push(payload);
       return jsonResponse(route, { access_token: "login-token", refresh_token: "login-refresh", token_type: "bearer" });
+    }
+
+    if (method === "POST" && path === "/auth/refresh") {
+      const payload = request.postDataJSON() || {};
+      state.captured.authRefresh.push(payload);
+      if (auth.failRefresh || payload.refresh_token !== currentValidRefreshToken) {
+        return jsonResponse(route, { detail: "Invalid refresh token" }, 401);
+      }
+      currentValidRefreshToken = auth.refreshedRefreshToken;
+      return jsonResponse(route, {
+        access_token: auth.refreshedAccessToken,
+        refresh_token: auth.refreshedRefreshToken,
+        token_type: "bearer",
+      });
     }
 
     if (method === "POST" && path === "/auth/request-email-verification") {

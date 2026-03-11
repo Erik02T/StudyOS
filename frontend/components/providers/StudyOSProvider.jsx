@@ -1,7 +1,12 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { apiRequest, resolveInitialApiBase } from "../../lib/api-client";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ApiRequestError,
+  apiRequest as sendApiRequest,
+  isLocalApiBaseOverrideEnabled,
+  resolveInitialApiBase,
+} from "../../lib/api-client";
 
 const StudyOSContext = createContext(null);
 
@@ -12,87 +17,203 @@ function parseStoredOrg(value) {
   return parsed;
 }
 
+function isRefreshablePath(path) {
+  return path !== "/auth/login" && path !== "/auth/register" && path !== "/auth/refresh";
+}
+
 export function StudyOSProvider({ children }) {
-  const [apiBase, setApiBase] = useState(resolveInitialApiBase());
+  const [apiBase, setApiBaseState] = useState(resolveInitialApiBase);
   const [token, setToken] = useState("");
-  const [refreshToken, setRefreshToken] = useState("");
+  const [refreshTokenState, setRefreshTokenState] = useState("");
   const [email, setEmail] = useState("");
   const [organizations, setOrganizations] = useState([]);
-  const [activeOrgId, setActiveOrgId] = useState(null);
+  const [activeOrgId, setActiveOrgIdState] = useState(null);
   const [loading, setLoading] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const [canEditApiBase, setCanEditApiBase] = useState(false);
+
+  const tokenRef = useRef("");
+  const refreshTokenRef = useRef("");
+  const apiBaseRef = useRef(apiBase);
+  const activeOrgIdRef = useRef(activeOrgId);
+  const refreshPromiseRef = useRef(null);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const cachedToken = window.localStorage.getItem("studyos_token") || "";
-    const cachedRefreshToken = window.localStorage.getItem("studyos_refresh_token") || "";
-    const cachedEmail = window.localStorage.getItem("studyos_email") || "";
-    const cachedOrg = parseStoredOrg(window.localStorage.getItem("studyos_org_id"));
-    setToken(cachedToken);
-    setRefreshToken(cachedRefreshToken);
-    setEmail(cachedEmail);
-    setActiveOrgId(cachedOrg);
-    setHydrated(true);
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    window.localStorage.setItem("studyos_api_base", apiBase);
-  }, [apiBase]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    window.localStorage.setItem("studyos_token", token);
+    tokenRef.current = token;
   }, [token]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    window.localStorage.setItem("studyos_refresh_token", refreshToken);
-  }, [refreshToken]);
+    refreshTokenRef.current = refreshTokenState;
+  }, [refreshTokenState]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    window.localStorage.setItem("studyos_email", email);
-  }, [email]);
+    apiBaseRef.current = apiBase;
+  }, [apiBase]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (activeOrgId) {
-      window.localStorage.setItem("studyos_org_id", String(activeOrgId));
-      return;
-    }
-    window.localStorage.removeItem("studyos_org_id");
+    activeOrgIdRef.current = activeOrgId;
   }, [activeOrgId]);
 
-  async function refreshOrganizations(nextToken = token) {
-    if (!nextToken) {
-      setOrganizations([]);
-      setActiveOrgId(null);
-      return [];
+  function syncStoredString(key, value) {
+    if (typeof window === "undefined") return;
+    if (value) {
+      window.localStorage.setItem(key, value);
+      return;
     }
-    const rows = await apiRequest({ baseUrl: apiBase, token: nextToken, path: "/organizations/" });
+    window.localStorage.removeItem(key);
+  }
+
+  function clearAuthState() {
+    tokenRef.current = "";
+    refreshTokenRef.current = "";
+    activeOrgIdRef.current = null;
+    refreshPromiseRef.current = null;
+    setToken("");
+    setRefreshTokenState("");
+    setEmail("");
+    setOrganizations([]);
+    setActiveOrgIdState(null);
+  }
+
+  function applySession(payload, nextEmail = email) {
+    const nextAccessToken = payload.access_token || "";
+    const nextRefreshToken = payload.refresh_token || "";
+    tokenRef.current = nextAccessToken;
+    refreshTokenRef.current = nextRefreshToken;
+    setToken(nextAccessToken);
+    setRefreshTokenState(nextRefreshToken);
+    setEmail(nextEmail);
+  }
+
+  function syncOrganizations(rows) {
     setOrganizations(rows);
     if (!rows.length) {
-      setActiveOrgId(null);
+      activeOrgIdRef.current = null;
+      setActiveOrgIdState(null);
       return rows;
     }
-    setActiveOrgId((prev) => (rows.some((org) => org.id === prev) ? prev : rows[0].id));
+    setActiveOrgIdState((prev) => {
+      const nextOrgId = rows.some((org) => org.id === prev) ? prev : rows[0].id;
+      activeOrgIdRef.current = nextOrgId;
+      return nextOrgId;
+    });
     return rows;
+  }
+
+  function setActiveOrgId(nextOrgId) {
+    activeOrgIdRef.current = nextOrgId;
+    setActiveOrgIdState(nextOrgId);
+  }
+
+  async function loadOrganizations(accessToken, baseUrl = apiBaseRef.current) {
+    if (!accessToken) {
+      return syncOrganizations([]);
+    }
+    const rows = await sendApiRequest({
+      baseUrl,
+      token: accessToken,
+      path: "/organizations/",
+    });
+    return syncOrganizations(rows);
+  }
+
+  async function refreshAccessToken() {
+    if (refreshPromiseRef.current) {
+      return refreshPromiseRef.current;
+    }
+
+    refreshPromiseRef.current = (async () => {
+      const currentRefreshToken = refreshTokenRef.current;
+      if (!currentRefreshToken) {
+        clearAuthState();
+        throw new Error("Session expired");
+      }
+
+      try {
+        const payload = await sendApiRequest({
+          baseUrl: apiBaseRef.current,
+          method: "POST",
+          path: "/auth/refresh",
+          body: { refresh_token: currentRefreshToken },
+        });
+        applySession(payload);
+        return payload.access_token || "";
+      } catch (requestError) {
+        clearAuthState();
+        throw requestError;
+      } finally {
+        refreshPromiseRef.current = null;
+      }
+    })();
+
+    return refreshPromiseRef.current;
+  }
+
+  async function requestWithAuth(params, { allowRefresh = true } = {}) {
+    const requestToken = params.token ?? tokenRef.current;
+    const requestParams = {
+      ...params,
+      baseUrl: params.baseUrl || apiBaseRef.current,
+      token: requestToken,
+      organizationId: params.organizationId ?? activeOrgIdRef.current,
+    };
+
+    try {
+      return await sendApiRequest(requestParams);
+    } catch (requestError) {
+      if (
+        !(requestError instanceof ApiRequestError) ||
+        requestError.status !== 401 ||
+        !allowRefresh ||
+        !requestToken ||
+        !refreshTokenRef.current ||
+        !isRefreshablePath(requestParams.path)
+      ) {
+        throw requestError;
+      }
+
+      if (tokenRef.current && tokenRef.current !== requestToken) {
+        return sendApiRequest({ ...requestParams, token: tokenRef.current });
+      }
+
+      const refreshedAccessToken = await refreshAccessToken();
+      return sendApiRequest({ ...requestParams, token: refreshedAccessToken });
+    }
+  }
+
+  async function refreshOrganizations(nextToken) {
+    const accessToken = nextToken ?? tokenRef.current;
+    if (!accessToken) {
+      return syncOrganizations([]);
+    }
+    if (nextToken) {
+      return loadOrganizations(nextToken);
+    }
+    const rows = await requestWithAuth({ path: "/organizations/" });
+    return syncOrganizations(rows);
+  }
+
+  function setApiBase(nextBase) {
+    if (!canEditApiBase) return;
+    setApiBaseState(nextBase);
   }
 
   async function login({ userEmail, password }) {
     setLoading(true);
     try {
-      const payload = await apiRequest({
-        baseUrl: apiBase,
+      const payload = await sendApiRequest({
+        baseUrl: apiBaseRef.current,
         method: "POST",
         path: "/auth/login",
         body: { email: userEmail, password },
       });
-      setToken(payload.access_token);
-      setRefreshToken(payload.refresh_token || "");
-      setEmail(userEmail);
-      await refreshOrganizations(payload.access_token);
+      applySession(payload, userEmail);
+      try {
+        await loadOrganizations(payload.access_token, apiBaseRef.current);
+      } catch (requestError) {
+        clearAuthState();
+        throw requestError;
+      }
       return payload;
     } finally {
       setLoading(false);
@@ -102,54 +223,132 @@ export function StudyOSProvider({ children }) {
   async function register({ userEmail, password }) {
     setLoading(true);
     try {
-      const payload = await apiRequest({
-        baseUrl: apiBase,
+      const payload = await sendApiRequest({
+        baseUrl: apiBaseRef.current,
         method: "POST",
         path: "/auth/register",
         body: { email: userEmail, password },
       });
-      setToken(payload.access_token);
-      setRefreshToken(payload.refresh_token || "");
-      setEmail(userEmail);
-      await refreshOrganizations(payload.access_token);
+      applySession(payload, userEmail);
+      try {
+        await loadOrganizations(payload.access_token, apiBaseRef.current);
+      } catch (requestError) {
+        clearAuthState();
+        throw requestError;
+      }
       return payload;
     } finally {
       setLoading(false);
     }
   }
 
-  function logout() {
-    if (refreshToken) {
-      apiRequest({
-        baseUrl: apiBase,
-        token,
+  async function logout({ revokeAllSessions = false } = {}) {
+    const requestLogout = () =>
+      sendApiRequest({
+        baseUrl: apiBaseRef.current,
+        token: tokenRef.current,
         method: "POST",
         path: "/auth/logout",
-        body: { refresh_token: refreshToken },
-      }).catch(() => {
-        // Local cleanup still happens even if remote logout fails.
+        body: {
+          ...(refreshTokenRef.current ? { refresh_token: refreshTokenRef.current } : {}),
+          revoke_all_sessions: revokeAllSessions,
+        },
       });
+
+    try {
+      if (!tokenRef.current && !refreshTokenRef.current) return;
+
+      try {
+        await requestLogout();
+      } catch (requestError) {
+        if (
+          requestError instanceof ApiRequestError &&
+          requestError.status === 401 &&
+          refreshTokenRef.current
+        ) {
+          try {
+            await refreshAccessToken();
+            await requestLogout();
+          } catch (_refreshError) {
+            // Fall back to local cleanup if the session cannot be revoked remotely.
+          }
+        }
+      }
+    } finally {
+      clearAuthState();
     }
-    setToken("");
-    setRefreshToken("");
-    setEmail("");
-    setOrganizations([]);
-    setActiveOrgId(null);
   }
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const allowOverride = isLocalApiBaseOverrideEnabled();
+    const cachedToken = window.localStorage.getItem("studyos_token") || "";
+    const cachedRefreshToken = window.localStorage.getItem("studyos_refresh_token") || "";
+    const cachedEmail = window.localStorage.getItem("studyos_email") || "";
+    const cachedOrg = parseStoredOrg(window.localStorage.getItem("studyos_org_id"));
+
+    tokenRef.current = cachedToken;
+    refreshTokenRef.current = cachedRefreshToken;
+    activeOrgIdRef.current = cachedOrg;
+
+    setCanEditApiBase(allowOverride);
+    setApiBaseState(resolveInitialApiBase({ allowOverride }));
+    setToken(cachedToken);
+    setRefreshTokenState(cachedRefreshToken);
+    setEmail(cachedEmail);
+    setActiveOrgIdState(cachedOrg);
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    if (typeof window === "undefined") return;
+    if (canEditApiBase) {
+      window.localStorage.setItem("studyos_api_base", apiBase);
+      return;
+    }
+    window.localStorage.removeItem("studyos_api_base");
+  }, [apiBase, canEditApiBase, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    syncStoredString("studyos_token", token);
+  }, [hydrated, token]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    syncStoredString("studyos_refresh_token", refreshTokenState);
+  }, [hydrated, refreshTokenState]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    syncStoredString("studyos_email", email);
+  }, [email, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    if (typeof window === "undefined") return;
+    if (activeOrgId) {
+      window.localStorage.setItem("studyos_org_id", String(activeOrgId));
+      return;
+    }
+    window.localStorage.removeItem("studyos_org_id");
+  }, [activeOrgId, hydrated]);
+
+  useEffect(() => {
     if (!token || !hydrated) return;
-    refreshOrganizations(token).catch(() => {
-      // keep session but avoid crash in layout
+    refreshOrganizations().catch(() => {
+      // Auth state is cleared centrally if refresh cannot recover.
     });
   }, [token, apiBase, hydrated]);
 
   const value = useMemo(
     () => ({
       apiBase,
+      canEditApiBase,
       setApiBase,
       token,
-      refreshToken,
       email,
       organizations,
       activeOrgId,
@@ -160,9 +359,14 @@ export function StudyOSProvider({ children }) {
       register,
       logout,
       refreshOrganizations,
-      apiRequest: (params) => apiRequest({ ...params, baseUrl: apiBase, token, organizationId: activeOrgId }),
+      apiRequest: (params) =>
+        requestWithAuth({
+          ...params,
+          baseUrl: apiBase,
+          organizationId: params.organizationId ?? activeOrgId,
+        }),
     }),
-    [apiBase, token, refreshToken, email, organizations, activeOrgId, loading, hydrated]
+    [apiBase, canEditApiBase, token, email, organizations, activeOrgId, loading, hydrated]
   );
 
   return <StudyOSContext.Provider value={value}>{children}</StudyOSContext.Provider>;

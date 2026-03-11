@@ -1,5 +1,5 @@
 const { test, expect } = require("@playwright/test");
-const { setupApiMock } = require("./helpers/mock-api");
+const { setupApiMock, seedAuthenticatedStorage } = require("./helpers/mock-api");
 
 test.describe("Auth flows", () => {
   test("user can register and reach dashboard", async ({ page }) => {
@@ -31,5 +31,64 @@ test.describe("Auth flows", () => {
     await expect(page.getByText("Evolution Score", { exact: true })).toBeVisible();
     await expect.poll(() => state.captured.authLogin.length).toBe(1);
     await expect.poll(() => state.captured.authLogin[0] && state.captured.authLogin[0].email).toBe("owner@acme.com");
+  });
+
+  test("expired access token refreshes once and retries protected requests", async ({ page }) => {
+    await seedAuthenticatedStorage(page, {
+      token: "expired-token",
+      refreshToken: "valid-refresh-token",
+      email: "owner@acme.com",
+    });
+    const state = await setupApiMock(page, {
+      auth: {
+        expiredAccessToken: "expired-token",
+        validRefreshToken: "valid-refresh-token",
+        refreshedAccessToken: "fresh-access-token",
+        refreshedRefreshToken: "fresh-refresh-token",
+      },
+    });
+
+    await page.goto("/dashboard");
+
+    await expect(page).toHaveURL(/\/dashboard/);
+    await expect(page.getByText("Evolution Score", { exact: true })).toBeVisible();
+    await expect.poll(() => state.captured.authRefresh.length).toBe(1);
+    await expect
+      .poll(() =>
+        page.evaluate(() => ({
+          access: window.localStorage.getItem("studyos_token"),
+          refresh: window.localStorage.getItem("studyos_refresh_token"),
+        }))
+      )
+      .toEqual({ access: "fresh-access-token", refresh: "fresh-refresh-token" });
+  });
+
+  test("invalid refresh clears auth state and redirects to login", async ({ page }) => {
+    await seedAuthenticatedStorage(page, {
+      token: "expired-token",
+      refreshToken: "invalid-refresh-token",
+      email: "owner@acme.com",
+    });
+    const state = await setupApiMock(page, {
+      auth: {
+        expiredAccessToken: "expired-token",
+        validRefreshToken: "valid-refresh-token",
+        failRefresh: true,
+      },
+    });
+
+    await page.goto("/dashboard");
+
+    await expect(page).toHaveURL(/\/auth\/login/);
+    await expect.poll(() => state.captured.authRefresh.length).toBe(1);
+    await expect
+      .poll(() =>
+        page.evaluate(() => ({
+          access: window.localStorage.getItem("studyos_token"),
+          refresh: window.localStorage.getItem("studyos_refresh_token"),
+          email: window.localStorage.getItem("studyos_email"),
+        }))
+      )
+      .toEqual({ access: null, refresh: null, email: null });
   });
 });
