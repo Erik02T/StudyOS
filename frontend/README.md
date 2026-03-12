@@ -41,7 +41,8 @@ Cobertura atual:
 
 Se não for definida, o frontend usa:
 - `http://127.0.0.1:8010` em localhost
-- `https://studyos-api-staging.up.railway.app` fora de localhost
+
+Fora de localhost, `NEXT_PUBLIC_API_BASE_URL` deve ser configurada explicitamente. O frontend não faz fallback automático para staging em deploys.
 
 ## Segurança de dependências
 

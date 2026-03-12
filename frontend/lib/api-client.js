@@ -1,6 +1,10 @@
 "use client";
 
-const DEFAULT_PUBLIC_API = "https://studyos-api-staging.up.railway.app";
+const LOCAL_PUBLIC_API = "http://127.0.0.1:8010";
+const MISSING_API_BASE_MESSAGE =
+  "StudyOS API is not configured for this deployment. Set NEXT_PUBLIC_API_BASE_URL.";
+const API_UNAVAILABLE_MESSAGE =
+  "Cannot reach the StudyOS API. Check backend health, CORS, and NEXT_PUBLIC_API_BASE_URL.";
 
 function isLocalBrowserHost() {
   if (typeof window === "undefined") return false;
@@ -10,7 +14,7 @@ function isLocalBrowserHost() {
 function getDefaultApiBase() {
   const env = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (env) return env;
-  return isLocalBrowserHost() ? "http://127.0.0.1:8010" : DEFAULT_PUBLIC_API;
+  return isLocalBrowserHost() ? LOCAL_PUBLIC_API : "";
 }
 
 export function isLocalApiBaseOverrideEnabled() {
@@ -46,16 +50,25 @@ export async function apiRequest({
   body,
   headers,
 }) {
-  const response = await fetch(`${baseUrl}${path}`, {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(organizationId ? { "X-Organization-Id": String(organizationId) } : {}),
-      ...(headers || {}),
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  if (!baseUrl) {
+    throw new ApiRequestError(MISSING_API_BASE_MESSAGE);
+  }
+
+  let response;
+  try {
+    response = await fetch(`${baseUrl}${path}`, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(organizationId ? { "X-Organization-Id": String(organizationId) } : {}),
+        ...(headers || {}),
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  } catch (_error) {
+    throw new ApiRequestError(API_UNAVAILABLE_MESSAGE);
+  }
 
   if (!response.ok) {
     let detail = `HTTP ${response.status}`;

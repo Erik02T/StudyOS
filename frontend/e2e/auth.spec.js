@@ -33,6 +33,20 @@ test.describe("Auth flows", () => {
     await expect.poll(() => state.captured.authLogin[0] && state.captured.authLogin[0].email).toBe("owner@acme.com");
   });
 
+  test("register shows a clear message when the API is unreachable", async ({ page }) => {
+    await page.goto("/auth/register");
+    await page.getByPlaceholder("you@email.com").fill("new@studyos.dev");
+    await page.getByPlaceholder("Your password").fill("StrongPass123!");
+    await page.getByPlaceholder("Repeat password").fill("StrongPass123!");
+    await page.getByRole("button", { name: "Create account" }).click();
+
+    await expect(
+      page.getByText(
+        "Cannot reach the StudyOS API. Check backend health, CORS, and NEXT_PUBLIC_API_BASE_URL."
+      )
+    ).toBeVisible();
+  });
+
   test("expired access token refreshes once and retries protected requests", async ({ page }) => {
     await seedAuthenticatedStorage(page, {
       token: "expired-token",
