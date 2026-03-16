@@ -7,6 +7,17 @@ $ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $backendDir = Join-Path $repoRoot "backend"
+$apiBase = "http://127.0.0.1:$ApiPort"
+
+if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
+    throw "Docker CLI was not found. Install or start Docker Desktop before running the local stack."
+}
+
+try {
+    docker info | Out-Null
+} catch {
+    throw "Docker Desktop is not running. Start it, then retry .\\start-prod-local.ps1."
+}
 
 Write-Host "[1/6] Starting PostgreSQL container..."
 Push-Location $repoRoot
@@ -62,12 +73,35 @@ Start-Process -FilePath python `
     -RedirectStandardOutput $workerLog `
     -RedirectStandardError $workerErrLog | Out-Null
 
+Write-Host "[verify] Waiting for API healthcheck on $apiBase/health ..."
+$apiHealthy = $false
+for ($i = 1; $i -le 30; $i++) {
+    Start-Sleep -Seconds 1
+    try {
+        $health = Invoke-RestMethod -Uri "$apiBase/health" -TimeoutSec 2
+        if ($health.status -eq "ok") {
+            $apiHealthy = $true
+            break
+        }
+    } catch {
+        # Keep polling until the server is ready.
+    }
+}
+
+if (-not $apiHealthy) {
+    Write-Host ""
+    Write-Host "API failed to become healthy. Last stderr lines:"
+    if (Test-Path $apiErrLog) {
+        Get-Content $apiErrLog -Tail 40
+    }
+    throw "StudyOS API did not answer /health on $apiBase."
+}
+
 Write-Host ""
 Write-Host "StudyOS local production stack started."
-Write-Host "API: http://127.0.0.1:$ApiPort/health"
+Write-Host "API: $apiBase/health"
 Write-Host "Logs:"
 Write-Host "  $apiLog"
 Write-Host "  $apiErrLog"
 Write-Host "  $workerLog"
 Write-Host "  $workerErrLog"
-

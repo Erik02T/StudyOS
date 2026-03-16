@@ -6,6 +6,16 @@ from pydantic import BaseModel, Field, ValidationError, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEFAULT_SECRET_KEY = "d002c9b-8f1e-4c3a-9c3b-2f0e5d6a7b8c"
+DEFAULT_PUBLIC_APP_URL = "http://127.0.0.1:3000"
+DEFAULT_CORS_ORIGINS = (
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://study-os-xi.vercel.app",
+    "https://studyos-staging.vercel.app",
+)
+DEFAULT_DATABASE_URL = "postgresql+psycopg2://postgres:postgres@127.0.0.1:5433/studyos"
 logger = logging.getLogger("studyos.config")
 _last_logged_settings_validation_summary: str | None = None
 
@@ -129,14 +139,9 @@ class Settings(BaseSettings):
     # App
     app_name: str = Field(default="StudyOS API", validation_alias="APP_NAME")
     app_version: str = Field(default="0.1.0", validation_alias="APP_VERSION")
-    public_app_url: str = Field(default="http://localhost:5173", validation_alias="PUBLIC_APP_URL")
+    public_app_url: str = Field(default=DEFAULT_PUBLIC_APP_URL, validation_alias="PUBLIC_APP_URL")
     cors_origins: str = Field(
-        default=(
-            "http://localhost:5173,"
-            "http://127.0.0.1:5173,"
-            "https://study-os-xi.vercel.app,"
-            "https://studyos-staging.vercel.app"
-        ),
+        default=",".join(DEFAULT_CORS_ORIGINS),
         validation_alias="CORS_ORIGINS",
     )
     cors_allow_origin_regex: str = Field(default=r"^https:\/\/.*\.vercel\.app$", validation_alias="CORS_ALLOW_ORIGIN_REGEX")
@@ -144,7 +149,7 @@ class Settings(BaseSettings):
 
     # Database
     database_url: str = Field(
-        default="postgresql+psycopg2://postgres:postgres@localhost:5432/studyos",
+        default=DEFAULT_DATABASE_URL,
         validation_alias="DATABASE_URL",
     )
 

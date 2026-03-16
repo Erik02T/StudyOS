@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.core.config import get_settings
+from app.core.config import DEFAULT_CORS_ORIGINS, get_settings
 from app.core.observability import setup_observability
 from app.routers.analytics import router as analytics_router
 from app.routers.auth import router as auth_router
@@ -18,14 +18,8 @@ settings = get_settings()
 app = FastAPI(title=settings.app.name, version=settings.app.version)
 setup_observability(app)
 
-default_origins = {
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "https://study-os-xi.vercel.app",
-    "https://studyos-staging.vercel.app",
-}
 configured_origins = set(settings.app.cors_origins)
-allowed_origins = sorted(default_origins | configured_origins)
+allowed_origins = sorted(set(DEFAULT_CORS_ORIGINS) | configured_origins)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,

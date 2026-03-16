@@ -39,6 +39,9 @@ def test_local_defaults_enable_only_local_dev_conveniences(monkeypatch):
     assert settings.auth.action_token_expose_in_response is True
     assert settings.billing.allow_manual_plan_change is True
     assert settings.billing.allow_insecure_stripe_webhooks is False
+    assert settings.app.public_app_url == "http://127.0.0.1:3000"
+    assert "http://localhost:3000" in settings.app.cors_origins
+    assert settings.database.url == "postgresql+psycopg2://postgres:postgres@127.0.0.1:5433/studyos"
 
 
 def test_staging_defaults_are_safe_when_overrides_are_unset(monkeypatch):

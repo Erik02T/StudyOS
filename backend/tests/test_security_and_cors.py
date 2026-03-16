@@ -1,3 +1,16 @@
+def test_cors_allows_local_nextjs_origin_preflight(client):
+    response = client.options(
+        "/auth/register",
+        headers={
+            "Origin": "http://localhost:3000",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type",
+        },
+    )
+    assert response.status_code in (200, 204)
+    assert response.headers.get("access-control-allow-origin") == "http://localhost:3000"
+
+
 def test_cors_allows_vercel_origin_preflight(client):
     response = client.options(
         "/auth/register",

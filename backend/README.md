@@ -1,31 +1,46 @@
 # StudyOS Backend
 
-Backend com:
-- Auth JWT
-- CRUD Subject/Task
-- Planner adaptativo (Pareto + carga cognitiva + balanceamento)
-- Spaced repetition (SM-2)
-- Analytics avancado e dashboard API
+API FastAPI do StudyOS com:
 
-## Executar
+- auth JWT com refresh token rotativo
+- multi-tenant por organizacao
+- CRUD de subjects/tasks
+- planner adaptativo
+- reviews com spaced repetition
+- analytics e billing foundation
+
+## Executar localmente
 
 ```bash
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
 copy .env.example .env
-alembic upgrade head
-uvicorn app.main:app --reload
+python -m alembic upgrade head
+python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8010
 ```
 
-## Testes (pytest)
+URLs locais:
+
+- API: `http://127.0.0.1:8010`
+- Healthcheck: `http://127.0.0.1:8010/health`
+
+Defaults importantes no `.env.example`:
+
+- `DATABASE_URL=postgresql+psycopg2://postgres:postgres@127.0.0.1:5433/studyos`
+- `PUBLIC_APP_URL=http://127.0.0.1:3000`
+- `CORS_ORIGINS` com `3000`, `5173` e os dominios Vercel conhecidos
+- `EMAIL_PROVIDER=console` para desenvolvimento local
+
+## Testes
 
 ```bash
-pytest -q
+python -m pytest -q
 ```
 
 ## Endpoints principais
 
+- `GET /health`
 - `POST /auth/register`
 - `POST /auth/login`
 - `POST /auth/refresh`
@@ -48,83 +63,8 @@ pytest -q
 - `GET /internal/email-queue/stats`
 - `POST /internal/email-queue/process`
 
-Todos os endpoints acima tambem estao disponiveis com prefixo versionado:
-- `/v1/...`
+Todos eles tambem existem com prefixo versionado em `/v1/...`.
 
-## Multi-tenant (foundation)
+## Deploy
 
-- Registro de usuario cria automaticamente uma organizacao pessoal.
-- Todas as rotas de dominio usam escopo por organizacao.
-- Header opcional para selecionar tenant: `X-Organization-Id: <id>`
-  - sem header, usa a primeira membership do usuario.
-
-## RBAC por acao
-
-- Permissoes aplicadas por role (`owner`, `admin`, `member`) por endpoint/acao.
-- `member` possui permissoes operacionais (listar/criar/atualizar) e nao pode executar acoes destrutivas sensiveis (ex.: deletes de subject/task).
-- Endpoints internos exigem permissoes especificas (`internal:email_queue:view/process`), efetivamente restritos a `owner/admin`.
-
-## Auth profissional (P0)
-
-- Access token + refresh token com rotacao.
-- Revogacao de access token no logout (blacklist por `jti`).
-- Sessao de refresh persistida em banco (`auth_sessions`).
-- Rate limit persistente para `login`, `refresh` e `logout`.
-- Verificacao de email com action token expiravel e uso unico.
-- Recuperacao de senha com action token expiravel e invalidacao de sessoes ativas.
-
-## Email transacional + fila assincrona
-
-- Provider suportado:
-  - `EMAIL_PROVIDER=console` (dev)
-  - `EMAIL_PROVIDER=smtp`
-  - `EMAIL_PROVIDER=resend`
-- Requests de verificacao/reset entram na tabela `email_jobs`.
-- Worker processa fila com retry exponencial.
-
-Rodar worker:
-
-```bash
-python -m app.workers.email_worker
-```
-
-Observabilidade:
-- `GET /internal/email-queue/stats`
-- `POST /internal/email-queue/process`
-- endpoints internos exigem role `owner` ou `admin` no tenant selecionado.
-
-## Observabilidade
-
-- `X-Request-Id` em todas as respostas.
-- logs estruturados por request (json line).
-- captura de excecoes 500 com `request_id`.
-- integracao opcional com Sentry via:
-  - `SENTRY_DSN`
-  - `SENTRY_TRACES_SAMPLE_RATE`
-
-## Finalizacao de sessao (recomendado)
-
-Use `POST /sessions/finalize` para encapsular regras:
-
-```json
-{
-  "source": "manual",
-  "completed_tasks": 1,
-  "study_minutes": 35,
-  "focus_score": 80,
-  "time_block": "19:00-21:00"
-}
-```
-
-Para revisao:
-
-```json
-{
-  "source": "review",
-  "study_minutes": 25,
-  "quality": 4,
-  "time_block": "19:00-21:00"
-}
-```
-
-O backend acumula os eventos no dia automaticamente.
+As variaveis obrigatorias para Railway e Vercel estao em [../DEPLOYMENT.md](../DEPLOYMENT.md).
