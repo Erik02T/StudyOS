@@ -69,7 +69,7 @@ CORS_ORIGINS=https://study-os-xi.vercel.app,https://studyos-staging.vercel.app
 
 Depois de alterar variaveis no Railway:
 
-1. Rode `python -m alembic upgrade head` no deploy ou no release command.
+1. O repositorio agora sobe o backend com `python -m alembic upgrade head && python -m uvicorn ...` no Railway.
 2. Redeploy o servico.
 3. Valide `GET /health`.
 4. Teste `POST /auth/register` e `POST /auth/login`.
