@@ -17,13 +17,13 @@ python -m venv .venv
 pip install -r requirements.txt
 copy .env.example .env
 python -m alembic upgrade head
-python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8010
+python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8080
 ```
 
 URLs locais:
 
-- API: `http://127.0.0.1:8010`
-- Healthcheck: `http://127.0.0.1:8010/health`
+- API: `http://127.0.0.1:8080`
+- Healthcheck: `http://127.0.0.1:8080/health`
 
 Defaults importantes no `.env.example`:
 

@@ -1,6 +1,6 @@
 Param(
     [switch]$ForceRestart,
-    [int]$ApiPort = 8010
+    [int]$ApiPort = 8080
 )
 
 $ErrorActionPreference = "Stop"

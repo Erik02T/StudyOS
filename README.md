@@ -11,8 +11,8 @@ Monorepo com:
 ## URLs locais padrao
 
 - Frontend: `http://127.0.0.1:3000`
-- Backend: `http://127.0.0.1:8010`
-- Healthcheck: `http://127.0.0.1:8010/health`
+- Backend: `http://127.0.0.1:8080`
+- Healthcheck: `http://127.0.0.1:8080/health`
 - PostgreSQL via Docker Compose: `127.0.0.1:5433`
 
 ## Subir tudo localmente
@@ -52,7 +52,7 @@ python -m venv .venv
 pip install -r requirements.txt
 copy .env.example .env
 python -m alembic upgrade head
-python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8010
+python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8080
 ```
 
 ## Frontend manual
@@ -64,7 +64,7 @@ npm install
 npm run dev
 ```
 
-`frontend/.env.example` ja aponta para `http://127.0.0.1:8010`.
+`frontend/.env.example` ja aponta para `http://127.0.0.1:8080`.
 
 ## Fluxo automatizado no app
 

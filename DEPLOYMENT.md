@@ -9,8 +9,8 @@
 ## Defaults locais do repositorio
 
 - Frontend local: `http://127.0.0.1:3000`
-- Backend local: `http://127.0.0.1:8010`
-- Healthcheck: `http://127.0.0.1:8010/health`
+- Backend local: `http://127.0.0.1:8080`
+- Healthcheck: `http://127.0.0.1:8080/health`
 
 ## Railway: backend
 

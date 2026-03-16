@@ -24,10 +24,10 @@ URL local padrao: `http://127.0.0.1:3000`
 `.env.example` ja aponta para a API local:
 
 ```bash
-NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8010
+NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8080
 ```
 
-Se a variavel nao for definida, o frontend faz fallback para `http://127.0.0.1:8010` apenas quando aberto em `localhost` ou `127.0.0.1`.
+Se a variavel nao for definida, o frontend faz fallback para `http://127.0.0.1:8080` apenas quando aberto em `localhost` ou `127.0.0.1`.
 
 Em Vercel, `NEXT_PUBLIC_API_BASE_URL` precisa ser configurada explicitamente para o dominio publico do backend.
 

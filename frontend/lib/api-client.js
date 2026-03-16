@@ -1,6 +1,6 @@
 "use client";
 
-const LOCAL_PUBLIC_API = "http://127.0.0.1:8010";
+const LOCAL_PUBLIC_API = "http://127.0.0.1:8080";
 const MISSING_API_BASE_MESSAGE =
   "StudyOS API is not configured for this deployment. Set NEXT_PUBLIC_API_BASE_URL.";
 const API_UNAVAILABLE_MESSAGE =
