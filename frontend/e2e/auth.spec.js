@@ -33,6 +33,30 @@ test.describe("Auth flows", () => {
     await expect.poll(() => state.captured.authLogin[0] && state.captured.authLogin[0].email).toBe("owner@acme.com");
   });
 
+  test("register still works when the cached API base omits the protocol", async ({ page }) => {
+    await page.addInitScript(() => {
+      window.localStorage.setItem("studyos_api_base", "127.0.0.1:8080");
+    });
+    const state = await setupApiMock(page);
+
+    await page.goto("/auth/register");
+    await page.getByPlaceholder("you@email.com").fill("protocol-fix@studyos.dev");
+    await page.getByPlaceholder("Your password").fill("StrongPass123!");
+    await page.getByPlaceholder("Repeat password").fill("StrongPass123!");
+    await page.getByRole("button", { name: "Create account" }).click();
+
+    await expect(page).toHaveURL(/\/dashboard/);
+    await expect.poll(() => state.captured.authRegister.length).toBe(1);
+    await expect
+      .poll(() =>
+        page.evaluate(() => ({
+          apiBase: window.localStorage.getItem("studyos_api_base"),
+          token: window.localStorage.getItem("studyos_token"),
+        }))
+      )
+      .toEqual({ apiBase: "http://127.0.0.1:8080", token: "register-token" });
+  });
+
   test("register shows a clear message when the API is unreachable", async ({ page }) => {
     await page.goto("/auth/register");
     await page.getByPlaceholder("you@email.com").fill("new@studyos.dev");

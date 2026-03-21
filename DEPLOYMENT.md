@@ -53,18 +53,18 @@ Variaveis opcionais:
 
 Exemplo de producao:
 
-- `PUBLIC_APP_URL=https://study-os-xi.vercel.app`
-- `CORS_ORIGINS=https://study-os-xi.vercel.app`
+- `PUBLIC_APP_URL=https://study-os-20.vercel.app`
+- `CORS_ORIGINS=https://study-os-20.vercel.app`
 
 Exemplo de staging:
 
-- `PUBLIC_APP_URL=https://studyos-staging.vercel.app`
-- `CORS_ORIGINS=https://studyos-staging.vercel.app`
+- `PUBLIC_APP_URL=https://<seu-frontend-staging>.vercel.app`
+- `CORS_ORIGINS=https://<seu-frontend-staging>.vercel.app`
 
 Se o mesmo backend precisar aceitar mais de um frontend, use lista CSV:
 
 ```text
-CORS_ORIGINS=https://study-os-xi.vercel.app,https://studyos-staging.vercel.app
+CORS_ORIGINS=https://study-os-20.vercel.app,https://<seu-frontend-staging>.vercel.app
 ```
 
 Depois de alterar variaveis no Railway:
@@ -80,9 +80,11 @@ Variavel obrigatoria:
 
 - `NEXT_PUBLIC_API_BASE_URL=<URL publica do backend Railway>`
 
+Use sempre a URL completa com protocolo, por exemplo `https://studyos-production.up.railway.app`.
+
 Exemplo de producao:
 
-- `NEXT_PUBLIC_API_BASE_URL=https://<seu-backend-prod>.up.railway.app`
+- `NEXT_PUBLIC_API_BASE_URL=https://studyos-production.up.railway.app`
 
 Exemplo de staging:
 

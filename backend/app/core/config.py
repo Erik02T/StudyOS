@@ -7,14 +7,13 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEFAULT_SECRET_KEY = "d002c9b-8f1e-4c3a-9c3b-2f0e5d6a7b8c"
 DEFAULT_PUBLIC_APP_URL = "http://127.0.0.1:3000"
-DEFAULT_CORS_ORIGINS = (
+DEFAULT_LOCAL_CORS_ORIGINS = (
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
-    "https://study-os-xi.vercel.app",
-    "https://studyos-staging.vercel.app",
 )
+DEFAULT_CORS_ORIGINS = DEFAULT_LOCAL_CORS_ORIGINS
 DEFAULT_DATABASE_URL = "postgresql+psycopg2://postgres:postgres@127.0.0.1:5433/studyos"
 logger = logging.getLogger("studyos.config")
 _last_logged_settings_validation_summary: str | None = None

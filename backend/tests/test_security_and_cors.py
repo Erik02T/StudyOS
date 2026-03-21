@@ -15,13 +15,13 @@ def test_cors_allows_vercel_origin_preflight(client):
     response = client.options(
         "/auth/register",
         headers={
-            "Origin": "https://study-os-xi.vercel.app",
+            "Origin": "https://study-os-20.vercel.app",
             "Access-Control-Request-Method": "POST",
             "Access-Control-Request-Headers": "content-type",
         },
     )
     assert response.status_code in (200, 204)
-    assert response.headers.get("access-control-allow-origin") == "https://study-os-xi.vercel.app"
+    assert response.headers.get("access-control-allow-origin") == "https://study-os-20.vercel.app"
 
 
 def test_security_headers_present(client):

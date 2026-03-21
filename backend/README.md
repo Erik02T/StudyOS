@@ -29,7 +29,8 @@ Defaults importantes no `.env.example`:
 
 - `DATABASE_URL=postgresql+psycopg2://postgres:postgres@127.0.0.1:5433/studyos`
 - `PUBLIC_APP_URL=http://127.0.0.1:3000`
-- `CORS_ORIGINS` com `3000`, `5173` e os dominios Vercel conhecidos
+- `CORS_ORIGINS` com origins locais (`3000` e `5173`)
+- `CORS_ALLOW_ORIGIN_REGEX=^https:\/\/.*\.vercel\.app$` para previews e deploys Vercel
 - `EMAIL_PROVIDER=console` para desenvolvimento local
 
 ## Testes

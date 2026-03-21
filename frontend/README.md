@@ -29,7 +29,9 @@ NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8080
 
 Se a variavel nao for definida, o frontend faz fallback para `http://127.0.0.1:8080` apenas quando aberto em `localhost` ou `127.0.0.1`.
 
-Em Vercel, `NEXT_PUBLIC_API_BASE_URL` precisa ser configurada explicitamente para o dominio publico do backend.
+Em Vercel, `NEXT_PUBLIC_API_BASE_URL` precisa ser configurada explicitamente para a URL publica completa do backend, por exemplo `https://studyos-production.up.railway.app`.
+
+Overrides locais salvos em `studyos_api_base` continuam aceitando host sem protocolo; o app normaliza `127.0.0.1:8080` para `http://127.0.0.1:8080` automaticamente.
 
 ## Testes E2E
 

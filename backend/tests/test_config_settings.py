@@ -40,7 +40,13 @@ def test_local_defaults_enable_only_local_dev_conveniences(monkeypatch):
     assert settings.billing.allow_manual_plan_change is True
     assert settings.billing.allow_insecure_stripe_webhooks is False
     assert settings.app.public_app_url == "http://127.0.0.1:3000"
-    assert "http://localhost:3000" in settings.app.cors_origins
+    assert settings.app.cors_origins == (
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    )
+    assert settings.app.cors_allow_origin_regex == r"^https:\/\/.*\.vercel\.app$"
     assert settings.database.url == "postgresql+psycopg2://postgres:postgres@127.0.0.1:5433/studyos"
 
 
